@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 
 public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
 {
-    private static final Logger log = Logger.getLogger(AsyncIterator.class);
+    private static final Logger LOGGER = Logger.getLogger(AsyncIterator.class);
 
     /**
      * Configuration : asynchronous or not
@@ -77,7 +77,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
             }
             synchronized (this)
             {
-                log.debug("acquired, hasParsed=" + hasParsed + ", isEmpty=" + objectList.isEmpty());
+                LOGGER.debug("acquired, hasParsed=" + hasParsed + ", isEmpty=" + objectList.isEmpty());
                 if (!objectList.isEmpty())
                 {
                     /*
@@ -168,7 +168,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
             }
             catch (InterruptedException e)
             {
-                log.error("Interrupted while waiting for queue limit...");
+                LOGGER.error("Interrupted while waiting for queue limit...");
                 break;
             }
         }
@@ -177,7 +177,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
 
     private synchronized void setFinished()
     {
-        log.debug("**** setFinished() *****");
+        LOGGER.debug("**** setFinished() *****");
         hasParsed = true;
         if (isAsync())
             parseSemaphore.release();
@@ -201,8 +201,10 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
         {
             Thread parsingThread = new Thread()
             {
+                @Override
                 public void run()
                 {
+                    LOGGER.info("Starting async thread for " + AsyncIterator.this.getClass().getName());
                     try
                     {
                         while (doScanOneItem() && !interrupted)
@@ -214,10 +216,11 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
                     }
                     catch (Throwable t)
                     {
-                        log.error("Could not scan : ", t);
+                        LOGGER.error("Could not scan : ", t);
                     }
                     finally
                     {
+                        LOGGER.info("Finished async thread for " + AsyncIterator.this.getClass().getName());
                         setFinished();
                     }
                 }

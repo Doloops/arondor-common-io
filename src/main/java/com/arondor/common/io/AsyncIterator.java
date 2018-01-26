@@ -56,6 +56,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
      */
     private Semaphore parseSemaphore = new Semaphore(0);
 
+    @Override
     public boolean hasNext()
     {
         if (isAsync())
@@ -77,7 +78,8 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
             }
             synchronized (this)
             {
-                LOGGER.debug("acquired, hasParsed=" + hasParsed + ", isEmpty=" + objectList.isEmpty());
+                // LOGGER.debug("acquired, hasParsed=" + hasParsed + ",
+                // isEmpty=" + objectList.isEmpty());
                 if (!objectList.isEmpty())
                 {
                     /*
@@ -121,6 +123,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
         }
     }
 
+    @Override
     public synchronized T next()
     {
         if (objectList.isEmpty())
@@ -134,6 +137,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
         return obj;
     }
 
+    @Override
     public void remove()
     {
         throw new RuntimeException("Invalid remove() on async iterator !");
@@ -229,6 +233,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
         }
     }
 
+    @Override
     public Iterator<T> iterator()
     {
         return this;

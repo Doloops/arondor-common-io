@@ -6,7 +6,10 @@ import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
@@ -43,86 +46,102 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
     protected boolean doScanOneItem()
     {
         buildList(filters);
-        while (true)
+        if (executor != null)
         {
-            Thread firstThread = null;
-            synchronized (this)
+            while (true)
             {
-                if (spawnedThreads.isEmpty())
+                try
                 {
-                    LOGGER.info("Spawned threads queue is empty, we finished the job !");
+                    executorMaybeFinished.acquire();
+                    if (VERBOSE)
+                    {
+                        LOGGER.debug("spawnedThreadsNumber=" + spawnedThreadsNumber.get());
+                    }
+                    if (spawnedThreadsNumber.get() != 0)
+                    {
+                        if (VERBOSE)
+                        {
+                            LOGGER.debug("Still some work to do here !");
+                        }
+                        continue;
+                    }
+                    if (VERBOSE)
+                    {
+                        LOGGER.debug("Shutdown !");
+                    }
+                    executor.shutdown();
+                    executor.awaitTermination(60, TimeUnit.MINUTES);
                     break;
                 }
-                LOGGER.info("Waiting for " + spawnedThreads.size() + " threads");
-                firstThread = spawnedThreads.get(0);
+                catch (InterruptedException e)
+                {
+                    LOGGER.error("Caught exception", e);
+                }
             }
-
-            LOGGER.debug("Waiting for thread :" + firstThread);
-            try
-            {
-                firstThread.join();
-            }
-            catch (InterruptedException e)
-            {
-                LOGGER.error("Could not wait for thread " + firstThread, e);
-            }
-            LOGGER.debug("Waiting for thread :" + firstThread + " OK");
         }
+        LOGGER.info("Total number of tasks spawned totalSpawnedThreadsNumber=" + totalSpawnedThreadsNumber.get());
         return false;
     }
 
-    private int concurrentThreads = 4;
+    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(4);
 
-    private List<Thread> spawnedThreads = new ArrayList<Thread>();
+    private final Semaphore executorMaybeFinished = new Semaphore(1);
 
-    private void mayspawn(final Callable<Void> callable, final String context, boolean spawnable)
+    private final AtomicInteger spawnedThreadsNumber = new AtomicInteger();
+
+    private final AtomicInteger totalSpawnedThreadsNumber = new AtomicInteger();
+
+    private void mayspawn(final Runnable runnable, final String context, boolean spawnable)
     {
-        if (spawnable && spawnedThreads.size() < concurrentThreads)
+        if (VERBOSE)
         {
-            synchronized (this)
+            LOGGER.debug("Current executor load : active=" + executor.getActiveCount() + ", queue="
+                    + executor.getQueue().size());
+        }
+        if (executor == null)
+        {
+            spawnable = false;
+        }
+        if (spawnable && (executor.getActiveCount() + executor.getQueue().size()) < executor.getCorePoolSize() * 2)
+        {
+            spawnedThreadsNumber.incrementAndGet();
+            totalSpawnedThreadsNumber.incrementAndGet();
+            executor.execute(new Runnable()
             {
-                if (spawnedThreads.size() < concurrentThreads)
+
+                @Override
+                public void run()
                 {
-                    Thread newThread = buildThreadForCallable(callable, context);
-                    spawnedThreads.add(newThread);
-                    newThread.start();
-                    return;
+                    if (VERBOSE)
+                    {
+                        LOGGER.debug("Started thread ! spawnedThreadsNumber=" + spawnedThreadsNumber.get()
+                                + ", context=" + context);
+                    }
+                    try
+                    {
+                        runnable.run();
+                    }
+                    finally
+                    {
+                        if (VERBOSE)
+                        {
+                            LOGGER.info("Finished thread ! context=" + context);
+                        }
+                        spawnedThreadsNumber.decrementAndGet();
+                        executorMaybeFinished.release();
+                    }
                 }
-            }
+            });
+            return;
         }
         try
         {
-            callable.call();
+            runnable.run();
         }
         catch (Exception e)
         {
             LOGGER.error("Caught exception", e);
         }
-    }
-
-    private Thread buildThreadForCallable(final Callable<Void> callable, final String context)
-    {
-        return new Thread()
-        {
-            @Override
-            public void run()
-            {
-                LOGGER.info("Started new thread ! context=" + context);
-                try
-                {
-                    callable.call();
-                }
-                catch (Exception e)
-                {
-                    LOGGER.error("Caught exception", e);
-                }
-                LOGGER.info("Finished new thread ! context=" + context);
-                synchronized (DirectoryScanner.this)
-                {
-                    spawnedThreads.remove(Thread.currentThread());
-                }
-            }
-        };
     }
 
     private void buildList(List<String> paths)
@@ -216,13 +235,12 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                 final String currentPath = prefix + "/" + child.getName();
                 if (child.isDirectory())
                 {
-                    mayspawn(new Callable<Void>()
+                    mayspawn(new Runnable()
                     {
                         @Override
-                        public Void call() throws Exception
+                        public void run()
                         {
                             buildRecursive(child, currentPath, matchPattern);
-                            return null;
                         }
                     }, currentPath, true);
                 }
@@ -326,17 +344,16 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                         {
                             try
                             {
-                                mayspawn(new Callable<Void>()
+                                mayspawn(new Runnable()
                                 {
                                     @Override
-                                    public Void call() throws Exception
+                                    public void run()
                                     {
                                         if (recursiveRegex)
                                         {
                                             buildList(file, wildcards, idx);
                                         }
                                         buildList(file, wildcards, idx + 1);
-                                        return null;
                                     }
                                 }, absolutePath, false);
                             }
@@ -379,15 +396,4 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
         }
         return list;
     }
-
-    public int getConcurrentThreads()
-    {
-        return concurrentThreads;
-    }
-
-    public void setConcurrentThreads(int concurrentThreads)
-    {
-        this.concurrentThreads = concurrentThreads;
-    }
-
 }

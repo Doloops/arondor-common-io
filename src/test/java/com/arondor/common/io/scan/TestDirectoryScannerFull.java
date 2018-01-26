@@ -44,5 +44,6 @@ public class TestDirectoryScannerFull
                 LOGGER.info("At " + file);
             }
         }
+        LOGGER.info("Total : " + count);
     }
 }

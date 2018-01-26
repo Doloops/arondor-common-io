@@ -6,6 +6,7 @@ import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
@@ -42,7 +43,86 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
     protected boolean doScanOneItem()
     {
         buildList(filters);
+        while (true)
+        {
+            Thread firstThread = null;
+            synchronized (this)
+            {
+                if (spawnedThreads.isEmpty())
+                {
+                    LOGGER.info("Spawned threads queue is empty, we finished the job !");
+                    break;
+                }
+                LOGGER.info("Waiting for " + spawnedThreads.size() + " threads");
+                firstThread = spawnedThreads.get(0);
+            }
+
+            LOGGER.debug("Waiting for thread :" + firstThread);
+            try
+            {
+                firstThread.join();
+            }
+            catch (InterruptedException e)
+            {
+                LOGGER.error("Could not wait for thread " + firstThread, e);
+            }
+            LOGGER.debug("Waiting for thread :" + firstThread + " OK");
+        }
         return false;
+    }
+
+    private int concurrentThreads = 4;
+
+    private List<Thread> spawnedThreads = new ArrayList<Thread>();
+
+    private void mayspawn(final Callable<Void> callable, final String context, boolean spawnable)
+    {
+        if (spawnable && spawnedThreads.size() < concurrentThreads)
+        {
+            synchronized (this)
+            {
+                if (spawnedThreads.size() < concurrentThreads)
+                {
+                    Thread newThread = buildThreadForCallable(callable, context);
+                    spawnedThreads.add(newThread);
+                    newThread.start();
+                    return;
+                }
+            }
+        }
+        try
+        {
+            callable.call();
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Caught exception", e);
+        }
+    }
+
+    private Thread buildThreadForCallable(final Callable<Void> callable, final String context)
+    {
+        return new Thread()
+        {
+            @Override
+            public void run()
+            {
+                LOGGER.info("Started new thread ! context=" + context);
+                try
+                {
+                    callable.call();
+                }
+                catch (Exception e)
+                {
+                    LOGGER.error("Caught exception", e);
+                }
+                LOGGER.info("Finished new thread ! context=" + context);
+                synchronized (DirectoryScanner.this)
+                {
+                    spawnedThreads.remove(Thread.currentThread());
+                }
+            }
+        };
     }
 
     private void buildList(List<String> paths)
@@ -131,12 +211,20 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
         rootFolder.listFiles(new FileFilter()
         {
             @Override
-            public boolean accept(File child)
+            public boolean accept(final File child)
             {
-                String currentPath = prefix + "/" + child.getName();
+                final String currentPath = prefix + "/" + child.getName();
                 if (child.isDirectory())
                 {
-                    buildRecursive(child, currentPath, matchPattern);
+                    mayspawn(new Callable<Void>()
+                    {
+                        @Override
+                        public Void call() throws Exception
+                        {
+                            buildRecursive(child, currentPath, matchPattern);
+                            return null;
+                        }
+                    }, currentPath, true);
                 }
                 else
                 {
@@ -231,18 +319,26 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                         LOGGER.debug("* matches !");
                     }
                     String absolutePath = dir.getAbsolutePath() + File.separator + name;
-                    File file = new File(absolutePath);
+                    final File file = new File(absolutePath);
                     if (file.isDirectory())
                     {
                         if (!lastPartOfPath)
                         {
                             try
                             {
-                                if (recursiveRegex)
+                                mayspawn(new Callable<Void>()
                                 {
-                                    buildList(file, wildcards, idx);
-                                }
-                                buildList(file, wildcards, idx + 1);
+                                    @Override
+                                    public Void call() throws Exception
+                                    {
+                                        if (recursiveRegex)
+                                        {
+                                            buildList(file, wildcards, idx);
+                                        }
+                                        buildList(file, wildcards, idx + 1);
+                                        return null;
+                                    }
+                                }, absolutePath, false);
                             }
                             catch (Exception e)
                             {
@@ -282,6 +378,16 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
             list.add(file);
         }
         return list;
+    }
+
+    public int getConcurrentThreads()
+    {
+        return concurrentThreads;
+    }
+
+    public void setConcurrentThreads(int concurrentThreads)
+    {
+        this.concurrentThreads = concurrentThreads;
     }
 
 }

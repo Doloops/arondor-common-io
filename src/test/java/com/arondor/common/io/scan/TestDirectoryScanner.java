@@ -16,6 +16,7 @@ public class TestDirectoryScanner
 
     private static final String substringAfter(String source, String pattern)
     {
+        source = source.replace('\\', '/');
         int idx = source.indexOf(pattern);
         if (idx < 0)
         {

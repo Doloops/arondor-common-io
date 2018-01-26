@@ -27,7 +27,6 @@ public class TestDirectoryScanner
     @Before
     public void init()
     {
-        DirectoryScanner.countFolderList = 0;
     }
 
     @Test
@@ -105,7 +104,6 @@ public class TestDirectoryScanner
         Assert.assertEquals("test2/a/b/e/f/g.txt", result.get(2));
         Assert.assertEquals("test2/a/b/e/f1.txt", result.get(3));
 
-        LOGGER.info("DirectoryScanner.countFolderList=" + DirectoryScanner.countFolderList);
     }
 
     @Test
@@ -127,6 +125,5 @@ public class TestDirectoryScanner
         LOGGER.info("Result " + result);
         Assert.assertEquals(0, result.size());
 
-        LOGGER.info("DirectoryScanner.countFolderList=" + DirectoryScanner.countFolderList);
     }
 }

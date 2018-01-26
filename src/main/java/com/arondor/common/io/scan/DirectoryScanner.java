@@ -122,15 +122,12 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
         buildList(rootFolder, wildcards, startIdx);
     }
 
-    public static int countFolderList = 0;
-
     private void buildRecursive(File rootFolder, final String prefix, final Pattern matchPattern)
     {
         if (VERBOSE)
         {
             LOGGER.debug("At buildRecursive(), rootFolder=" + rootFolder.getAbsolutePath() + ", prefix=" + prefix);
         }
-        countFolderList++;
         rootFolder.listFiles(new FileFilter()
         {
             @Override
@@ -218,7 +215,6 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
             LOGGER.debug("buildList() " + rootFolder.getPath() + ", wildcard=" + wildcard + ", regex=" + regex
                     + ", recursive=" + recursiveRegex + ", idx=" + idx);
         }
-        countFolderList++;
         rootFolder.list(new FilenameFilter()
         {
             @Override

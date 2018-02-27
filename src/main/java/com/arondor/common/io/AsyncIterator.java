@@ -3,6 +3,7 @@ package com.arondor.common.io;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 import org.apache.log4j.Logger;
@@ -55,6 +56,11 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
      * Parse semaphore
      */
     private Semaphore parseSemaphore = new Semaphore(0);
+
+    /**
+     * Randomize input values
+     */
+    private boolean randomize = false;
 
     @Override
     public boolean hasNext()
@@ -123,6 +129,8 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
         }
     }
 
+    private final Random randomGenerator = new Random();
+
     @Override
     public synchronized T next()
     {
@@ -130,10 +138,21 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
         {
             throw new RuntimeException("next() : objectList is empty !");
         }
-        T obj = objectList.get(0);
+        int index = 0;
+        if (randomize)
+        {
+            int size = objectList.size();
+            if (size > 10)
+            {
+                index = randomGenerator.nextInt(size);
+            }
+        }
+        T obj = objectList.get(index);
         if (obj == null)
-            throw new RuntimeException("objectList.get(0) returned null !");
-        objectList.remove(0);
+        {
+            throw new RuntimeException("objectList.get(" + index + ") returned null !");
+        }
+        objectList.remove(index);
         return obj;
     }
 

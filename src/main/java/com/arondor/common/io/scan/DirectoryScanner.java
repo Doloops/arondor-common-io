@@ -39,7 +39,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
             return DirectoryScanner.this.isAsync();
         }
 
-        public int getQueueLength()
+        public int getQueueSize()
         {
             return DirectoryScanner.this.getQueueSize();
         }
@@ -47,7 +47,11 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
         public boolean isRandomize()
         {
             return DirectoryScanner.this.isRandomize();
+        }
 
+        public void setRandomize(boolean randomize)
+        {
+            DirectoryScanner.this.setRandomize(true);
         }
 
         public int getTotalObjectsAdded()
@@ -68,6 +72,26 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
         public void setPaused(boolean paused)
         {
             DirectoryScanner.this.setPaused(paused);
+        }
+
+        public void setQueueLimit(int queueLimit)
+        {
+            DirectoryScanner.this.setQueueLimit(queueLimit);
+        }
+
+        public int getQueueLimit()
+        {
+            return DirectoryScanner.this.getQueueLimit();
+        }
+
+        public void setQueueLimitDelay(int queueLimitDelay)
+        {
+            DirectoryScanner.this.setQueueLimitDelay(queueLimitDelay);
+        }
+
+        public int getQueueLimitDelay()
+        {
+            return DirectoryScanner.this.getQueueLimitDelay();
         }
     }
 

@@ -154,7 +154,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
             throw new RuntimeException("next() : objectList is empty !");
         }
         int index = 0;
-        if (randomize)
+        if (isRandomize())
         {
             int size = objectList.size();
             if (size > 10)

@@ -15,12 +15,67 @@ import java.util.regex.Pattern;
 import org.apache.log4j.Logger;
 
 import com.arondor.common.io.AsyncIterator;
+import com.arondor.common.io.ConfigurableThreadPoolExecutor;
+import com.arondor.common.management.mbean.MBeanObject;
 
 public class DirectoryScanner extends AsyncIterator<String> implements FileScanner
 {
     private static final Logger LOGGER = Logger.getLogger(DirectoryScanner.class);
 
     private static final boolean VERBOSE = LOGGER.isDebugEnabled();
+
+    private final ScheduledThreadPoolExecutor executor = new ConfigurableThreadPoolExecutor(
+            "DirectoryScanner_" + System.currentTimeMillis(), 1, 65536);
+
+    public final class DirectoryScannerStats extends MBeanObject
+    {
+        protected DirectoryScannerStats(String name)
+        {
+            super(name);
+        }
+
+        public boolean isAsync()
+        {
+            return DirectoryScanner.this.isAsync();
+        }
+
+        public int getQueueLength()
+        {
+            return DirectoryScanner.this.getQueueSize();
+        }
+
+        public boolean isRandomize()
+        {
+            return DirectoryScanner.this.isRandomize();
+
+        }
+
+        public int getTotalObjectsAdded()
+        {
+            return DirectoryScanner.this.getTotalObjectsAdded();
+        }
+
+        public int getTotalObjectsIterated()
+        {
+            return DirectoryScanner.this.getTotalObjectsIterated();
+        }
+
+        public boolean isPaused()
+        {
+            return DirectoryScanner.this.isPaused();
+        }
+
+        public void setPaused(boolean paused)
+        {
+            DirectoryScanner.this.setPaused(paused);
+        }
+    }
+
+    private final DirectoryScannerStats directoryScannerStats = new DirectoryScannerStats("DirectoryScanner");
+
+    public DirectoryScanner()
+    {
+    }
 
     /**
      * Check if a path has wildcard characters or not
@@ -34,12 +89,17 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
         return (path.contains("*") || path.contains("?"));
     }
 
-    protected List<String> filters;
+    private List<String> filters;
 
     @Override
     public void setFilters(List<String> filters)
     {
         this.filters = filters;
+    }
+
+    public List<String> getFilters()
+    {
+        return this.filters;
     }
 
     @Override
@@ -79,11 +139,10 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                 }
             }
         }
-        LOGGER.info("Total number of tasks spawned totalSpawnedThreadsNumber=" + totalSpawnedThreadsNumber.get());
+        LOGGER.info("Total number of tasks spawned totalSpawnedThreadsNumber=" + totalSpawnedThreadsNumber.get()
+                + ", items added=" + getTotalObjectsAdded() + ", iterated=" + getTotalObjectsIterated());
         return false;
     }
-
-    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(4);
 
     private final Semaphore executorMaybeFinished = new Semaphore(1);
 

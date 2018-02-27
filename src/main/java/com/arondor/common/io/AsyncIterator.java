@@ -38,9 +38,24 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
     private List<T> objectList = new ArrayList<T>();
 
     /**
+     * Total number of objects added to the iterator
+     */
+    private int totalObjectsAdded = 0;
+
+    /**
+     * Total number of objects iterated over
+     */
+    private int totalObjectsIterated = 0;
+
+    /**
      * Is asynchronous scanning called or not ?
      */
     private boolean asyncScanCalled = false;
+
+    /**
+     * Is the async iterator in pause ?
+     */
+    private boolean paused = false;
 
     /**
      * Is parsing finished or not
@@ -153,6 +168,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
             throw new RuntimeException("objectList.get(" + index + ") returned null !");
         }
         objectList.remove(index);
+        totalObjectsIterated++;
         return obj;
     }
 
@@ -175,16 +191,21 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
     protected synchronized void doAddObject(T obj)
     {
         objectList.add(obj);
+        totalObjectsAdded++;
         if (isAsync())
+        {
             parseSemaphore.release();
+        }
     }
 
     protected void addObject(T obj)
     {
-        while (isAsync() && getQueueLimit() > 0 && objectList.size() >= getQueueLimit())
+        while (isPaused() || (isAsync() && getQueueLimit() > 0 && objectList.size() >= getQueueLimit()))
         {
             if (interrupted)
+            {
                 throw new RuntimeException("Interrupted parsing !" + this);
+            }
             try
             {
                 Thread.sleep(getQueueLimitDelay());
@@ -258,6 +279,11 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
         return this;
     }
 
+    public int getQueueSize()
+    {
+        return this.objectList.size();
+    }
+
     public void setQueueLimit(int queueLimit)
     {
         this.queueLimit = queueLimit;
@@ -295,5 +321,35 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
     public int getAsyncThreads()
     {
         return asyncThreads;
+    }
+
+    public boolean isRandomize()
+    {
+        return randomize;
+    }
+
+    public void setRandomize(boolean randomize)
+    {
+        this.randomize = randomize;
+    }
+
+    public int getTotalObjectsAdded()
+    {
+        return totalObjectsAdded;
+    }
+
+    public int getTotalObjectsIterated()
+    {
+        return totalObjectsIterated;
+    }
+
+    public boolean isPaused()
+    {
+        return paused;
+    }
+
+    public void setPaused(boolean paused)
+    {
+        this.paused = paused;
     }
 }

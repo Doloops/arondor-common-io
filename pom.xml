@@ -34,5 +34,11 @@
 			<version>1.9.5</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.arondor.common.reflection</groupId>
+			<artifactId>arondor-common-reflection-mbean</artifactId>
+			<version>0.3.0</version>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 </project>

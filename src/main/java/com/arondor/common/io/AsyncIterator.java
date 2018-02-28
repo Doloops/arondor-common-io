@@ -8,6 +8,8 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.log4j.Logger;
 
+import com.arondor.common.management.mbean.MBeanObject;
+
 public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
 {
     private static final Logger LOGGER = Logger.getLogger(AsyncIterator.class);
@@ -352,4 +354,78 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
     {
         this.paused = paused;
     }
+
+    /**
+     * Stats part
+     */
+
+    public final class AsyncIteratorStats extends MBeanObject
+    {
+        protected AsyncIteratorStats(String name)
+        {
+            super(name);
+        }
+
+        public boolean isAsync()
+        {
+            return AsyncIterator.this.isAsync();
+        }
+
+        public int getQueueSize()
+        {
+            return AsyncIterator.this.getQueueSize();
+        }
+
+        public boolean isRandomize()
+        {
+            return AsyncIterator.this.isRandomize();
+        }
+
+        public void setRandomize(boolean randomize)
+        {
+            AsyncIterator.this.setRandomize(randomize);
+        }
+
+        public int getTotalObjectsAdded()
+        {
+            return AsyncIterator.this.getTotalObjectsAdded();
+        }
+
+        public int getTotalObjectsIterated()
+        {
+            return AsyncIterator.this.getTotalObjectsIterated();
+        }
+
+        public boolean isPaused()
+        {
+            return AsyncIterator.this.isPaused();
+        }
+
+        public void setPaused(boolean paused)
+        {
+            AsyncIterator.this.setPaused(paused);
+        }
+
+        public void setQueueLimit(int queueLimit)
+        {
+            AsyncIterator.this.setQueueLimit(queueLimit);
+        }
+
+        public int getQueueLimit()
+        {
+            return AsyncIterator.this.getQueueLimit();
+        }
+
+        public void setQueueLimitDelay(int queueLimitDelay)
+        {
+            AsyncIterator.this.setQueueLimitDelay(queueLimitDelay);
+        }
+
+        public int getQueueLimitDelay()
+        {
+            return AsyncIterator.this.getQueueLimitDelay();
+        }
+    }
+
+    private final AsyncIteratorStats asyncIteratorStats = new AsyncIteratorStats(this.getClass().getName());
 }

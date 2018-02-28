@@ -125,6 +125,56 @@ public class TestDirectoryScanner
         Collections.sort(result);
         LOGGER.info("Result " + result);
         Assert.assertEquals(0, result.size());
+    }
 
+    @Test
+    public void testDirScan_test3_filterExtensions()
+    {
+        DirectoryScanner scanner = new DirectoryScanner();
+        List<String> excludedExtensions = new ArrayList<String>();
+        excludedExtensions.add("pcl");
+        scanner.setExcludedExtensions(excludedExtensions);
+        scanner.setAsync(false);
+        List<String> filters = new ArrayList<String>();
+        filters.add("./src/test/resources/test3/*/*/*.*");
+        scanner.setFilters(filters);
+
+        List<String> result = new ArrayList<String>();
+
+        for (String file : scanner)
+        {
+            result.add(substringAfter(file, "/resources/"));
+        }
+        Collections.sort(result);
+        LOGGER.info("Result " + result);
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals("test3/a/b/2.1.txt", result.get(0));
+        Assert.assertEquals("test3/a/b/2.txt", result.get(1));
+    }
+
+    @Test
+    public void testDirScan_test3_filterExtensions_Wildcard()
+    {
+        DirectoryScanner scanner = new DirectoryScanner();
+        List<String> excludedExtensions = new ArrayList<String>();
+        excludedExtensions.add("pcl");
+        scanner.setExcludedExtensions(excludedExtensions);
+        scanner.setAsync(false);
+        List<String> filters = new ArrayList<String>();
+        filters.add("./src/test/resources/test3/**/*");
+        scanner.setFilters(filters);
+
+        List<String> result = new ArrayList<String>();
+
+        for (String file : scanner)
+        {
+            result.add(substringAfter(file, "/resources/"));
+        }
+        Collections.sort(result);
+        LOGGER.info("Result " + result);
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals("test3/a/b/2.1.txt", result.get(0));
+        Assert.assertEquals("test3/a/b/2.txt", result.get(1));
+        Assert.assertEquals("test3/a/b/3", result.get(2));
     }
 }

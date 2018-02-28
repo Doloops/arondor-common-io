@@ -16,7 +16,6 @@ import org.apache.log4j.Logger;
 
 import com.arondor.common.io.AsyncIterator;
 import com.arondor.common.io.ConfigurableThreadPoolExecutor;
-import com.arondor.common.management.mbean.MBeanObject;
 
 public class DirectoryScanner extends AsyncIterator<String> implements FileScanner
 {
@@ -26,76 +25,6 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
 
     private final ScheduledThreadPoolExecutor executor = new ConfigurableThreadPoolExecutor(
             "DirectoryScanner_" + System.currentTimeMillis(), 1, 65536);
-
-    public final class DirectoryScannerStats extends MBeanObject
-    {
-        protected DirectoryScannerStats(String name)
-        {
-            super(name);
-        }
-
-        public boolean isAsync()
-        {
-            return DirectoryScanner.this.isAsync();
-        }
-
-        public int getQueueSize()
-        {
-            return DirectoryScanner.this.getQueueSize();
-        }
-
-        public boolean isRandomize()
-        {
-            return DirectoryScanner.this.isRandomize();
-        }
-
-        public void setRandomize(boolean randomize)
-        {
-            DirectoryScanner.this.setRandomize(true);
-        }
-
-        public int getTotalObjectsAdded()
-        {
-            return DirectoryScanner.this.getTotalObjectsAdded();
-        }
-
-        public int getTotalObjectsIterated()
-        {
-            return DirectoryScanner.this.getTotalObjectsIterated();
-        }
-
-        public boolean isPaused()
-        {
-            return DirectoryScanner.this.isPaused();
-        }
-
-        public void setPaused(boolean paused)
-        {
-            DirectoryScanner.this.setPaused(paused);
-        }
-
-        public void setQueueLimit(int queueLimit)
-        {
-            DirectoryScanner.this.setQueueLimit(queueLimit);
-        }
-
-        public int getQueueLimit()
-        {
-            return DirectoryScanner.this.getQueueLimit();
-        }
-
-        public void setQueueLimitDelay(int queueLimitDelay)
-        {
-            DirectoryScanner.this.setQueueLimitDelay(queueLimitDelay);
-        }
-
-        public int getQueueLimitDelay()
-        {
-            return DirectoryScanner.this.getQueueLimitDelay();
-        }
-    }
-
-    private final DirectoryScannerStats directoryScannerStats = new DirectoryScannerStats("DirectoryScanner");
 
     public DirectoryScanner()
     {
@@ -125,6 +54,8 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
     {
         return this.filters;
     }
+
+    private List<String> excludedExtensions = new ArrayList<String>();
 
     @Override
     protected boolean doScanOneItem()
@@ -256,7 +187,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                 {
                     LOGGER.debug("Found fully-resolved file : '" + resolvedFile.getAbsolutePath() + "'");
                 }
-                addPath(resolvedFile.getAbsolutePath());
+                addFile(resolvedFile);
             }
             return;
         }
@@ -331,7 +262,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                 {
                     if (matchPattern.matcher(currentPath).matches())
                     {
-                        addPath(child.getAbsolutePath());
+                        addFile(child);
                     }
                 }
                 return false;
@@ -455,12 +386,35 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                     }
                     else if (!recursiveRegex)
                     {
-                        addPath(absolutePath);
+                        addFile(file);
                     }
                 }
                 return false;
             }
         });
+    }
+
+    private String getExtension(File file)
+    {
+        String name = file.getName();
+        int idx = name.lastIndexOf('.');
+        if (idx != -1)
+        {
+            return name.substring(idx + 1);
+        }
+        return "";
+    }
+
+    private void addFile(File file)
+    {
+        if (!excludedExtensions.isEmpty())
+        {
+            if (excludedExtensions.contains(getExtension(file)))
+            {
+                return;
+            }
+        }
+        addPath(file.getAbsolutePath());
     }
 
     private void addPath(String absolutePath)
@@ -478,5 +432,15 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
             list.add(file);
         }
         return list;
+    }
+
+    public List<String> getExcludedExtensions()
+    {
+        return excludedExtensions;
+    }
+
+    public void setExcludedExtensions(List<String> excludedExtensions)
+    {
+        this.excludedExtensions = excludedExtensions;
     }
 }

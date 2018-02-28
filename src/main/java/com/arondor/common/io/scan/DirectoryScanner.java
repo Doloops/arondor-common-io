@@ -409,8 +409,13 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
     {
         if (!excludedExtensions.isEmpty())
         {
-            if (excludedExtensions.contains(getExtension(file)))
+            String extension = getExtension(file);
+            if (excludedExtensions.contains(extension))
             {
+                if (VERBOSE)
+                {
+                    LOGGER.debug("Filter out file : " + file.getAbsolutePath() + ", extension=" + extension);
+                }
                 return;
             }
         }

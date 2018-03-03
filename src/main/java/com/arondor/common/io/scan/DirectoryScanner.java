@@ -448,4 +448,21 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
     {
         this.excludedExtensions = excludedExtensions;
     }
+
+    public void setCorePoolSize(int corePoolSize)
+    {
+        if (executor != null)
+        {
+            executor.setCorePoolSize(corePoolSize);
+        }
+    }
+
+    public int getCorePoolSize()
+    {
+        if (executor != null)
+        {
+            return executor.getCorePoolSize();
+        }
+        return 0;
+    }
 }

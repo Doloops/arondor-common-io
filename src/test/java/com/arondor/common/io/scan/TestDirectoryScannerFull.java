@@ -20,9 +20,10 @@ public class TestDirectoryScannerFull
     public void testDirScan_test1()
     {
         DirectoryScanner scanner = new DirectoryScanner();
+        scanner.setCorePoolSize(8);
         scanner.setAsync(true);
         List<String> filters = new ArrayList<String>();
-        filters.add("/home/francois/git/**/*.*");
+        filters.add("/home/francois/git/*/**/*.*");
         scanner.setFilters(filters);
 
         int count = 0;

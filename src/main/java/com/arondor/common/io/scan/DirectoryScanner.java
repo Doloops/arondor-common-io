@@ -2,7 +2,6 @@ package com.arondor.common.io.scan;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -139,7 +138,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                     {
                         if (VERBOSE)
                         {
-                            LOGGER.info("Finished thread ! context=" + context);
+                            LOGGER.debug("Finished thread ! context=" + context);
                         }
                         spawnedThreadsNumber.decrementAndGet();
                         executorMaybeFinished.release();
@@ -256,7 +255,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                         {
                             buildRecursive(child, currentPath, matchPattern);
                         }
-                    }, currentPath, true);
+                    }, child.getAbsolutePath(), true);
                 }
                 else
                 {
@@ -335,23 +334,24 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
             LOGGER.debug("buildList() " + rootFolder.getPath() + ", wildcard=" + wildcard + ", regex=" + regex
                     + ", recursive=" + recursiveRegex + ", idx=" + idx);
         }
-        rootFolder.list(new FilenameFilter()
+
+        rootFolder.listFiles(new FileFilter()
         {
             @Override
-            public boolean accept(File dir, String name)
+            public boolean accept(final File file)
             {
                 if (VERBOSE)
                 {
-                    LOGGER.debug("At dir : " + dir.getAbsolutePath() + ", name : " + name);
+                    LOGGER.debug("At file : " + file.getAbsolutePath());
                 }
+                String name = file.getName();
                 if (recursiveRegex || regexPattern.matcher(name.toLowerCase()).matches())
                 {
                     if (VERBOSE)
                     {
                         LOGGER.debug("* matches !");
                     }
-                    String absolutePath = dir.getAbsolutePath() + File.separator + name;
-                    final File file = new File(absolutePath);
+                    String absolutePath = file.getAbsolutePath();
                     if (file.isDirectory())
                     {
                         if (!lastPartOfPath)
@@ -369,7 +369,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                                         }
                                         buildList(file, wildcards, idx + 1);
                                     }
-                                }, absolutePath, false);
+                                }, absolutePath, true);
                             }
                             catch (Exception e)
                             {
@@ -391,6 +391,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                 }
                 return false;
             }
+
         });
     }
 

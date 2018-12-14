@@ -239,18 +239,25 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
     protected synchronized void callAsyncScan()
     {
         if (!isAsync())
+        {
             throw new RuntimeException("Invalid call to callAsyncScan() : not async !");
+        }
         if (asyncScanCalled)
+        {
             throw new RuntimeException("Invalid call to callAsyncScan() : already called !");
+        }
         asyncScanCalled = true;
+        LOGGER.info("Starting " + getAsyncThreads() + " threads for " + AsyncIterator.this.getClass().getName());
         for (int t = 0; t < getAsyncThreads(); t++)
         {
+            final int threadNumber = t;
             Thread parsingThread = new Thread()
             {
                 @Override
                 public void run()
                 {
-                    LOGGER.info("Starting async thread for " + AsyncIterator.this.getClass().getName());
+                    LOGGER.info("Starting async thread #" + threadNumber + " for "
+                            + AsyncIterator.this.getClass().getName());
                     try
                     {
                         while (doScanOneItem() && !interrupted)
@@ -317,6 +324,7 @@ public abstract class AsyncIterator<T> implements Iterator<T>, Iterable<T>
 
     public void setAsyncThreads(int asyncThreads)
     {
+        LOGGER.info("setAsyncThreads(" + asyncThreads + ") for " + AsyncIterator.this.getClass().getName());
         this.asyncThreads = asyncThreads;
     }
 

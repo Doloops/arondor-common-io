@@ -17,12 +17,13 @@ public class TestDirectoryScannerFull
     }
 
     @Test
-    public void testDirScan_test1()
+    public void testDirScan_test1() throws InterruptedException
     {
         DirectoryScanner scanner = new DirectoryScanner();
         scanner.setAsync(true);
         List<String> filters = new ArrayList<String>();
         filters.add("/home/francois/git/**/*.*");
+        // filters.add("c:/**/*.*");
         scanner.setFilters(filters);
 
         int count = 0;
@@ -32,6 +33,7 @@ public class TestDirectoryScannerFull
             if (count % 10000 == 0)
             {
                 LOGGER.info("At " + file);
+                Thread.sleep(100);
             }
         }
         LOGGER.info("Total : " + count);

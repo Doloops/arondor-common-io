@@ -23,12 +23,7 @@ public class TestDirectoryScannerFull
         scanner.setCorePoolSize(8);
         scanner.setAsync(true);
         List<String> filters = new ArrayList<String>();
-<<<<<<< HEAD
-        filters.add("/home/francois/git/**/*.*");
-        // filters.add("c:/**/*.*");
-=======
         filters.add("/home/francois/git/*/**/*.*");
->>>>>>> branch 'master' of git@github.com:Doloops/arondor-common-io.git
         scanner.setFilters(filters);
 
         int count = 0;

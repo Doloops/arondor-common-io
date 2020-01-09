@@ -43,18 +43,9 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
 
     private List<String> filters;
 
-    @Override
-    public void setFilters(List<String> filters)
-    {
-        this.filters = filters;
-    }
-
-    public List<String> getFilters()
-    {
-        return this.filters;
-    }
-
     private List<String> excludedExtensions = new ArrayList<String>();
+
+    private boolean filterOutInconsistentNames = true;
 
     @Override
     protected boolean doScanOneItem()
@@ -420,12 +411,20 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                 return;
             }
         }
-        addPath(file.getAbsolutePath());
-    }
-
-    private void addPath(String absolutePath)
-    {
-        addObject(absolutePath);
+        if (isFilterOutInconsistentNames())
+        {
+            String filename = file.getName();
+            for (int chr = 0; chr < filename.length(); chr++)
+            {
+                int codePoint = filename.codePointAt(chr);
+                if (codePoint < 0x20)
+                {
+                    LOGGER.warn("Invalid character for file: " + file.getAbsolutePath());
+                    return;
+                }
+            }
+        }
+        addObject(file.getAbsolutePath());
     }
 
     @Override
@@ -438,6 +437,17 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
             list.add(file);
         }
         return list;
+    }
+
+    @Override
+    public void setFilters(List<String> filters)
+    {
+        this.filters = filters;
+    }
+
+    public List<String> getFilters()
+    {
+        return this.filters;
     }
 
     public List<String> getExcludedExtensions()
@@ -465,5 +475,15 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
             return executor.getCorePoolSize();
         }
         return 0;
+    }
+
+    public boolean isFilterOutInconsistentNames()
+    {
+        return filterOutInconsistentNames;
+    }
+
+    public void setFilterOutInconsistentNames(boolean filterOutInconsistentNames)
+    {
+        this.filterOutInconsistentNames = filterOutInconsistentNames;
     }
 }

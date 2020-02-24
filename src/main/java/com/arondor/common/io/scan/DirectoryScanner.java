@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -46,6 +47,8 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
     private List<String> excludedExtensions = new ArrayList<String>();
 
     private boolean filterOutInconsistentNames = true;
+
+    private boolean sortFolderChildren = false;
 
     @Override
     protected boolean doScanOneItem()
@@ -225,13 +228,42 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
         buildList(rootFolder, wildcards, startIdx);
     }
 
+    private void doListFiles(File parent, FileFilter filter)
+    {
+        if (isSortFolderChildren())
+        {
+            doListOrderedFiles(parent, filter);
+        }
+        else
+        {
+            parent.listFiles(filter);
+        }
+    }
+
+    private void doListOrderedFiles(File parent, FileFilter filter)
+    {
+        File files[] = parent.listFiles();
+        Arrays.sort(files, new Comparator<File>()
+        {
+            @Override
+            public int compare(File o1, File o2)
+            {
+                return o1.getAbsolutePath().compareTo(o2.getAbsolutePath());
+            }
+        });
+        for (File f : files)
+        {
+            filter.accept(f);
+        }
+    }
+
     private void buildRecursive(File rootFolder, final String prefix, final Pattern matchPattern)
     {
         if (VERBOSE)
         {
             LOGGER.debug("At buildRecursive(), rootFolder=" + rootFolder.getAbsolutePath() + ", prefix=" + prefix);
         }
-        rootFolder.listFiles(new FileFilter()
+        doListFiles(rootFolder, new FileFilter()
         {
             @Override
             public boolean accept(final File child)
@@ -326,7 +358,7 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
                     + ", recursive=" + recursiveRegex + ", idx=" + idx);
         }
 
-        rootFolder.listFiles(new FileFilter()
+        doListFiles(rootFolder, new FileFilter()
         {
             @Override
             public boolean accept(final File file)
@@ -485,5 +517,15 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
     public void setFilterOutInconsistentNames(boolean filterOutInconsistentNames)
     {
         this.filterOutInconsistentNames = filterOutInconsistentNames;
+    }
+
+    public boolean isSortFolderChildren()
+    {
+        return sortFolderChildren;
+    }
+
+    public void setSortFolderChildren(boolean sortFolderChildren)
+    {
+        this.sortFolderChildren = sortFolderChildren;
     }
 }

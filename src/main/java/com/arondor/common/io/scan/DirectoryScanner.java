@@ -194,8 +194,8 @@ public class DirectoryScanner extends AsyncIterator<String> implements FileScann
 
         File rootFolder = null;
         String rootFolderPath = "";
-        if (wildcard.startsWith("/"))
-            rootFolderPath = "/";
+        // if (wildcard.startsWith("/"))
+        // rootFolderPath = "/";
         int startIdx;
         for (startIdx = 0; startIdx < wildcards.length - 1; startIdx++)
         {
